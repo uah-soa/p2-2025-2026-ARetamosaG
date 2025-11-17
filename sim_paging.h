@@ -111,7 +111,39 @@ void reference_page (ssystem * S, int page, char op);
 
 // Functions that simulate the operating system
 
-void handle_page_fault (ssystem * S, unsigned virt_address);
+void handle_page_fault (ssystem * S, unsigned virtual_addr){
+
+  int page, frame, last, victim;
+
+  S->numpagefaults++;
+  page = virtual_addr / S->pagsz;
+  
+  if (S->detailed) {
+	printf ("@ PAGE_FAULT in P %d!\n", page);
+  }
+  
+  if (S->listfree != -1) {
+	// There are free frames
+	last = S->listfree;
+	frame = S->frt[last].next;
+	
+	if (frame==last) {
+		// Then, this is the last one left.
+		S->listfree = -1;
+	} else {
+      		// Otherwise, bypass
+      		S->frt[last].next = S->frt[frame].next;
+    	}
+    	
+    	occupy_free_frame(S, frame, page);
+    
+  } else {
+    	// There are not free frames
+    	victim = choose_page_to_be_replaced(S);
+    	replace_page(S, victim, page);
+  }
+}
+
 int choose_page_to_be_replaced (ssystem * S);
 void replace_page (ssystem * S, int victim, int newpage);
 void occupy_free_frame (ssystem * S, int frame, int page);
