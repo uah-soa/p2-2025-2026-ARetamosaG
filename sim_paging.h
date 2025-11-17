@@ -72,78 +72,12 @@ void init_tables (ssystem * S);
 
 // Functions that simulate the hardware of the MMU
 
-unsigned sim_mmu(ssystem* S, unsigned virtual_addr, char op) {
-  unsigned physical_addr;
-  int page, frame, offset;
-
-  // TODO(student):
-  //       Type in the code that simulates the MMU's (hardware)
-  //       behaviour in response to a memory access operation
-  
-  page   = virtual_addr / S-> pagsz ;	// Quotient 
-  offset = virtual_addr % S-> pagsz ;	// Reminder
-
-  if ( page <0 || page >= S->numpags )
-  {
-	S->numillegalrefs++;  // References out of range 
-	return ~0U;	// Return invalid physical 0xFFF..F
-  }
-  
-  if (! S->pgt[page].present )
-	// Not present: trigger page fault exception 
-	handle_page_fault(S, virtual_addr);
-	
-  // Now it is present
-  frame = S->pgt[page].frame ;	
-  physical_addr = frame*S->pagsz+offset;
-  
-  reference_page (S, page, op);
-  
-  if (S->detailed) {
-	printf ("\t %c %u==P %d(M %d)+ %d\n", op, virtual_addr, page, frame, offset);
-  }
-
-
-  return physical_addr;
-}
-
+unsigned sim_mmu(ssystem* S, unsigned virtual_addr, char op);
 void reference_page (ssystem * S, int page, char op);
 
 // Functions that simulate the operating system
 
-void handle_page_fault (ssystem * S, unsigned virtual_addr){
-
-  int page, frame, last, victim;
-
-  S->numpagefaults++;
-  page = virtual_addr / S->pagsz;
-  
-  if (S->detailed) {
-	printf ("@ PAGE_FAULT in P %d!\n", page);
-  }
-  
-  if (S->listfree != -1) {
-	// There are free frames
-	last = S->listfree;
-	frame = S->frt[last].next;
-	
-	if (frame==last) {
-		// Then, this is the last one left.
-		S->listfree = -1;
-	} else {
-      		// Otherwise, bypass
-      		S->frt[last].next = S->frt[frame].next;
-    	}
-    	
-    	occupy_free_frame(S, frame, page);
-    
-  } else {
-    	// There are not free frames
-    	victim = choose_page_to_be_replaced(S);
-    	replace_page(S, victim, page);
-  }
-}
-
+void handle_page_fault (ssystem * S, unsigned virtual_addr);
 int choose_page_to_be_replaced (ssystem * S);
 void replace_page (ssystem * S, int victim, int newpage);
 void occupy_free_frame (ssystem * S, int frame, int page);
