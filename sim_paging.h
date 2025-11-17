@@ -72,7 +72,41 @@ void init_tables (ssystem * S);
 
 // Functions that simulate the hardware of the MMU
 
-unsigned sim_mmu (ssystem * S, unsigned virt_address, char op);
+unsigned sim_mmu(ssystem* S, unsigned virtual_addr, char op) {
+  unsigned physical_addr;
+  int page, frame, offset;
+
+  // TODO(student):
+  //       Type in the code that simulates the MMU's (hardware)
+  //       behaviour in response to a memory access operation
+  
+  page   = virtual_addr / S-> pagsz ;	// Quotient 
+  offset = virtual_addr % S-> pagsz ;	// Reminder
+
+  if ( page <0 || page >= S->numpags )
+  {
+	S->numillegalrefs++;  // References out of range 
+	return ~0U;	// Return invalid physical 0xFFF..F
+  }
+  
+  if (! S->pgt[page].present )
+	// Not present: trigger page fault exception 
+	handle_page_fault(S, virtual_addr);
+	
+  // Now it is present
+  frame = S->pgt[page].frame ;	
+  physical_addr = frame*S->pagsz+offset;
+  
+  reference_page (S, page, op);
+  
+  if (S->detailed) {
+	printf ("\t %c %u==P %d(M %d)+ %d\n", op, virtual_addr, page, frame, offset);
+  }
+
+
+  return physical_addr;
+}
+
 void reference_page (ssystem * S, int page, char op);
 
 // Functions that simulate the operating system
